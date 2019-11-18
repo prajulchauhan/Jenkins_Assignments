@@ -1,0 +1,31 @@
+#! /bin/bash
+
+echo 'Installing Java'
+
+yum install -y java
+
+echo 'Java Installed'
+
+curl --silent --location http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo | sudo tee /etc/yum.repos.d/jenkins.repo
+
+	echo 'key copied'
+  
+	echo 'Downloading rpm'
+
+while	[ $( sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key | echo $? ) == 0 ]
+	
+
+
+do ( yum install -y jenkins )
+
+		systemctl start jenkins 
+
+		systemctl status jenkins
+
+		echo ' Jenkins Started'
+
+	done
+
+
+
+

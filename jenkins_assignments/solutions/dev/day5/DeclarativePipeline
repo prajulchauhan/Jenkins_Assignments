@@ -1,0 +1,54 @@
+pipeline {
+   agent any
+        stages {
+            stage ("Code Clone")
+            {
+                steps {
+                   
+          git  'git@gitlab.com:arunangshu_ops/spring3hibernate.git'
+                }
+            }
+            stage ("Code Stability")
+            {
+                steps {
+                      echo "thnaks"
+           sh ' mvn validate'
+                }
+            }
+
+
+            stage ("Code Quality")
+            {
+                steps {  
+                    echo "thnaks"
+           sh 'mvn findbugs:findbugs && mvn checkstyle:checkstyle'
+
+                }
+            }
+
+            stage ("Code Coverage")
+            {
+                steps {  echo "thnaks"
+          sh ' mvn cobertura:cobertura' 
+                }
+            }
+ stage ('Publish Report'){
+        steps{
+        recordIssues enabledForFailure: true, tools: [checkStyle(pattern: 'spring3hibernate/target/checkstyle-result.xml')]
+           recordIssues enabledForFailure: true, tools: [findBugs(pattern: 'spring3hibernate/target/findbugs.xml')]
+           cobertura autoUpdateHealth: false, autoUpdateStability: false, conditionalCoverageTargets: '70, 0, 0', lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0,  coberturaReportFile: 'spring3hibernate/target/site/cobertura/coverage.xml', methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+           
+             }
+        }
+         stage ('Email Slack'){
+        steps{
+         slackSend channel: 'jenkins-notifications', color: 'warning', message: 'Jenkins The build number is ${BUILD_NUMBER} the project name is  ${JOB_NAME} The job console Url ${BUILD_URL} The job is triggered by ${BUILD_CAUSE}', teamDomain: 'opstree', tokenCredentialId: 'slack', username: 'Dev at jenkins'  
+    emailext attachLog: true, body: '''This is sent from jenkins code pipeline.
+ The build number is ${BUILD_NUMBER}
+the project name is  ${JOB_NAME}
+The job console Url ${BUILD_URL}
+The job is triggered by ${BUILD_CAUSE}''', subject: 'PIpeline code build', to: 'devendra.pokhariya@mygurukulam.org'
+        }
+        }
+}
+}

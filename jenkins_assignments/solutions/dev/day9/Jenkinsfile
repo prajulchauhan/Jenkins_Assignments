@@ -1,0 +1,19 @@
+node {
+        stage{
+            input message: 'Ip address', ok: 'okay',
+             parameters: [string(defaultValue: '192.168.1.124', description: '', 
+            name: 'ipaddress', trim: false)]
+        }
+    stage ('Publish files'){
+        
+           sh "scp *.sh opstree@${ipaddress}:/home/opstree"
+
+    }
+    
+    stage ('Install software')
+    {
+        sh "ssh opstree@${ipaddress} /home/opstree/installHaProxy.sh"
+    }
+
+}
+

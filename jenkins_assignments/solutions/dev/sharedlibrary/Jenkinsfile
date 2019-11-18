@@ -1,0 +1,63 @@
+@Library('usershared')_
+
+node{
+    stage ('Local remote'){
+        env.getLocal = input message: 'Local Or remote', ok: 'ok',
+         parameters: [choice(choices: ['Local', 'Remote'], 
+         description: 'Choose where user has to create', name: 'local')]
+    }
+if ("${env.getLocal}"=='Local'){
+stage ('Get Input'){
+    env.gname = input message: 'Groupname', ok: 'ok', 
+    parameters: [string(defaultValue: 'one', 
+    description: '', name: 'gname', trim: false)]
+    env.uname = input message: 'Insert username', ok: 'ok', 
+    parameters: [string(defaultValue: 'one', 
+    description: '', name: 'uname', trim: false)]
+}
+
+
+stage('create group'){
+    if ("${env.gname}"!=''){
+     group(gname: "${env.gname}")
+    }
+     else {
+         group(gname: "NA")
+     }
+  }
+  stage('create Users'){
+    if ("${env.uname}"!=''){
+     user(uname: "${env.uname}")
+    }
+     else {
+         user(uname: "NA")
+     }
+  }
+
+  stage ('Get Input'){
+    env.gdel = input message: 'Groupname', ok: 'ok', 
+    parameters: [string(defaultValue: 'one', 
+    description: '', name: 'gdel', trim: false)]
+    env.udel = input message: 'Insert username', ok: 'ok', 
+    parameters: [string(defaultValue: 'two onet', 
+    description: '', name: 'udel', trim: false)]
+}
+
+   stage('Delete Groups'){
+    if ("${env.gdel}"!=''){
+     group.delete(gdel: "${env.gdel}")
+    }
+     else {
+         group.delete(gdel: "NA")
+     }
+  }
+  stage('Delete Users'){
+    if ("${env.udel}"!=''){
+     user.delete(udel: "${env.udel}")
+    }
+     else {
+         user.delete(udel: "NA")
+     }
+  }
+    }
+}

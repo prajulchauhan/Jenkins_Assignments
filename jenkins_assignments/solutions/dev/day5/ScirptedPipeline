@@ -1,0 +1,35 @@
+node{
+    
+
+
+   	stage ('Git Clone'){
+          withCredentials([usernamePassword(credentialsId: 'devgit',
+           passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+           deleteDir()
+           git  '$url'
+      }
+        
+   }
+    stage ('Stability code')
+                 {
+                sh " mvn validate" 
+           }
+    stage ('Code Quality')
+                 {
+                   sh " mvn findbugs:findbugs" 
+               }
+     stage ('Code Coverage')
+               {
+                    sh "mvn cobertura:cobertura" 
+               }
+    stage ('Code Publish')
+               {
+                   recordIssues enabledForFailure: true, tools: [checkStyle(pattern: '**/spring3hibernate/target/checkstyle-result.xml')]
+           recordIssues enabledForFailure: true, tools: [findBugs(pattern: '**/spring3hibernate/target/findbugs.xml')]
+           cobertura autoUpdateHealth: false, autoUpdateStability: false, conditionalCoverageTargets: '70, 0, 0', lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0,  coberturaReportFile: '**/target/site/cobertura/coverage.xml', methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+             slackSend channel: 'jenkins-notifications', color: 'good', message: 'Build is completed', teamDomain: 'opstree', tokenCredentialId: 'slack', username: 'Dev jenkins'   
+    
+               }
+            
+    
+}

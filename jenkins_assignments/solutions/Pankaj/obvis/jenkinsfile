@@ -1,0 +1,50 @@
+pipeline{
+    agent any 
+    stages{
+       stage ('Git Clone') {
+ 	steps{
+ 	 checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@gitlab.com:ot-softwares/obvis/git-rest-api.git']]]) 
+	}
+       }
+	stage ('Build code') {
+ 	steps{
+ 	sh 'make build-code'
+ 	}
+	}
+ 	stage('copy code')
+ 	{
+ 	 steps{
+        sh 'sshpass -p @obvis scp git-rest-api obvis@192.168.1.140:/tmp'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mv /tmp/git-rest-api /usr/local/bin"'
+  }
+	}
+	stage('clone git2')
+	{
+	    steps
+	    {
+	        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'git@gitlab.com:pankaj.verma2/git_practice_pankaj.git']]]) 
+	    }
+	}
+		stage('copy config files')
+ 	{
+ 	 steps{
+     sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mkdir /tmp/git-rest"'
+        sh 'sshpass -p @obvis scp git.yml obvis@192.168.1.140:/tmp'
+        sh 'sshpass -p @obvis scp config.ini obvis@192.168.1.140:/tmp'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mv -f /tmp/git.yml  /tmp/git-rest"'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mv -f /tmp/config.ini /tmp/git-rest"'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mv -f /tmp/git-rest /etc/conf.d"'
+  }
+	}
+	stage('set environment')
+ 	{
+ 	 steps{
+        sh 'sshpass -p @obvis scp git-rest.service obvis@192.168.1.140:/tmp'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo mv -f /tmp/git-rest.service  /etc/systemd/system"'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo systemctl daemon-reload"'
+        sh 'sshpass -p @obvis ssh obvis@192.168.1.140 "sudo systemctl start git-rest.service"'
+  }
+	}
+	
+}
+}

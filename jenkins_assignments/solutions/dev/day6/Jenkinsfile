@@ -1,0 +1,141 @@
+pipeline {
+     agent any
+        stages {
+            stage ("Code Clone")
+            {              
+                steps {
+                   
+                  git  'git@github.com:Devpokhariya/spring3hibernate.git'
+                }
+            }
+        stage ("Code Stability")
+            {
+                steps {   
+                   
+                    sh 'mvn package'
+                }
+            } 
+
+        stage ("Code Quality")
+            {
+                steps {  
+                    
+                   sh 'mvn findbugs:findbugs && mvn checkstyle:checkstyle'
+
+                }
+            }
+
+            stage ("Code Coverage")
+            {
+                steps { 
+         sh 'mvn cobertura:cobertura' 
+                }
+            }
+           stage ('snyk test')
+            {
+               steps {
+                    
+                    sh 'snyk monitor'
+           //snykSecurity failOnIssues: false, organisation: 'devendra.pokhariya', snykInstallation: 'snyk', snykTokenId: 'snyk'
+                    
+                }
+          }
+            
+            stage ('Approval input'){
+                steps{
+                     script {
+                    env.RELEASE_SCOPE = input message: 'Do you want to continue Yes/No', ok:'accept', parameters: [choice(choices: ['yes', 'no'], description: '', name: 'param')], submitter: 'qa,devops'
+                }
+                    
+                }
+            }
+          
+            stage('Deploy Yes'){
+                when {
+                    expression { "${env.RELEASE_SCOPE}" == 'yes' }
+                }
+                steps {
+                    deploy adapters: [tomcat8(credentialsId: 'tomcat', path: '', url: 'http://127.0.0.1:9090/')], contextPath: null, war: '*/*.war'
+                }
+            }
+                 stage ('Deploy no'){
+                 when {
+                    
+                    expression { "${env.RELEASE_SCOPE}" == 'no' }
+                    }
+                    steps{ 
+                        echo "Project did not deployed"
+                }
+            }
+             stage ('RollBack input'){
+                steps{
+                     script {
+                    env.ROLL_SCOPE = input message: 'Rollback Yes/No', ok:'accept', parameters: [choice(choices: ['yes', 'no'], description: '', name: 'param')], submitter: 'qa,devops'
+                }
+                    
+                }
+            }
+             stage ('checkout code') {
+            when{
+                 expression { "${env.ROLL_SCOPE}" == 'yes' }
+            }
+            steps {
+                sh 'git checkout 1.0 -b 1.0'
+            }
+            
+            
+        }
+        
+        
+        stage ('pakcage code') {
+             when{
+                 expression { "${env.ROLL_SCOPE}" == 'yes' }
+            }
+            steps {
+                sh 'mvn package'
+            }
+            
+            
+        }
+        
+         
+        stage ('Deploy code') {
+             when{
+                 expression { "${env.ROLL_SCOPE}" == 'yes' }
+            }
+            steps {
+                deploy adapters: [tomcat8(credentialsId: 'tomcat', path: '', url: 'http://127.0.0.1:9090/')],  contextPath: 'myapp.war', war: '*/*.war'
+            }
+        }
+
+        stage ('No rollback'){
+            when{
+                 expression { "${env.ROLL_SCOPE}" == 'no' }
+            }
+            steps{
+                echo "No Rollback Initiated"
+            }
+        }
+            
+         
+        
+ stage ('Publish Report'){
+        steps{
+        recordIssues enabledForFailure: true, tools: [checkStyle(pattern: 'target/checkstyle-result.xml')]
+           recordIssues enabledForFailure: true, tools: [findBugs(pattern: 'target/findbugs.xml')]
+           cobertura autoUpdateHealth: false, autoUpdateStability: false, conditionalCoverageTargets: '70, 0, 0', lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0,  coberturaReportFile: 'target/site/cobertura/coverage.xml', methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+           
+             }
+        }
+         stage ('Email & Slack'){
+        steps{
+         slackSend channel: 'jenkins-notifications', color: 'warning', message: 'Jenkins The build number is "${BUILD_NUMBER}" the project name is  "${JOB_NAME}" The job console Url "${BUILD_URL}" The job is triggered by "${BUILD_CAUSE}"', teamDomain: 'opstree', tokenCredentialId: 'slack', username: 'Dev at jenkins'  
+    emailext attachLog: true, body: '''This is sent from jenkins code pipeline.
+ The build number is ${BUILD_NUMBER}
+the project name is  ${JOB_NAME}
+The job console Url ${BUILD_URL}
+The job is triggered by ${BUILD_CAUSE}''', subject: 'PIpeline code build', to: 'devendra.pokhariya@mygurukulam.org'
+        }
+        }
+}
+}

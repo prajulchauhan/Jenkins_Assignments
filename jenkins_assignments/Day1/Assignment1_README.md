@@ -20,7 +20,6 @@ In this section we will learn how to work with freestyle jenkins jobs.
     * Using ssh protocol
 * Update above jenkins job so that it should be able to identify if there is a code commit in last 5 minutes it should get triggered.
 * Enable colored console output
-*
 
 ### Good to Do
 * Clone the code available in the same repository only if there is changes in *java* folder and only this folder should be checked out.
